@@ -13,3 +13,15 @@ body {
   margin: 0;
   padding: 0;
 }
+
+/* Force English labels on the map */
+.map-tiles-english {
+  filter: grayscale(0.1);
+}
+
+/* Override any non-English labels */
+.leaflet-tile-pane {
+  [lang]:not([lang="en"]) {
+    display: none !important;
+  }
+}
