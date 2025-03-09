@@ -43,6 +43,24 @@ const countryCodeMapping: { [key: string]: string } = {
   // Add more mappings as needed
 };
 
+// English country names mapping
+const countryNamesMapping: { [key: string]: string } = {
+  'United States of America': 'United States',
+  'Russian Federation': 'Russia',
+  'Korea, Republic of': 'South Korea',
+  'Iran, Islamic Republic of': 'Iran',
+  'Syrian Arab Republic': 'Syria',
+  'Venezuela, Bolivarian Republic of': 'Venezuela',
+  'Viet Nam': 'Vietnam',
+  'Lao People\'s Democratic Republic': 'Laos',
+  'Congo, Democratic Republic of the': 'DR Congo',
+  'Tanzania, United Republic of': 'Tanzania',
+  'Myanmar': 'Myanmar (Burma)',
+  'Brunei Darussalam': 'Brunei',
+  'Czech Republic': 'Czechia',
+  // Add more mappings as needed
+};
+
 interface TimeMapProps {
   className?: string;
 }
@@ -88,16 +106,6 @@ function MapEvents() {
         console.log('Testing geocoder:', geocoderInstance);
         const testCountry = geocoderInstance.get_country(40.7128, -74.0060); // Test with New York coordinates
         console.log('Test geocoding result:', testCountry);
-        
-        // Test country data lookup
-        if (testCountry) {
-          const alpha2Code = countryCodeMapping[testCountry.code] || testCountry.code;
-          const testCountryData = countryDataModule.countries.all.find((c: any) => 
-            c.alpha2 === alpha2Code || 
-            c.name.toLowerCase() === testCountry.name.toLowerCase()
-          );
-          console.log('Test country data lookup:', testCountryData);
-        }
       } catch (error) {
         console.error('Failed to initialize dependencies:', error);
         setIsInitialized(true); // Set to true even on error to prevent infinite loading
@@ -116,6 +124,24 @@ function MapEvents() {
       return `${(population / 1000).toFixed(2)} thousand`;
     }
     return population.toString();
+  };
+
+  const getEnglishCountryName = async (countryCode: string): Promise<string> => {
+    try {
+      const response = await fetch(
+        `https://api.worldbank.org/v2/country/${countryCode}?format=json`
+      );
+      const data = await response.json();
+      
+      if (data && data[1] && data[1][0]) {
+        const officialName = data[1][0].name;
+        // Use our mapping if available, otherwise use the World Bank name
+        return countryNamesMapping[officialName] || officialName;
+      }
+    } catch (error) {
+      console.error('Error fetching country name:', error);
+    }
+    return countryCode; // Return the country code as fallback
   };
   
   const map = useMapEvents({
@@ -169,7 +195,9 @@ function MapEvents() {
               console.log('Found country data:', countryInfo);
               
               if (countryInfo) {
-                info.country = `${countryInfo.emoji} ${country.name}`;
+                // Get English country name from World Bank API
+                const englishName = await getEnglishCountryName(countryInfo.alpha2);
+                info.country = `${countryInfo.emoji} ${englishName || country.name}`;
                 
                 // Fetch population data from World Bank API
                 try {
